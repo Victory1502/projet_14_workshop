@@ -1,0 +1,3 @@
+C:/Users/dimbo/OneDrive/Documents/Master 2/workshop/projet14/build/CMakeFiles/magicbox.dir
+C:/Users/dimbo/OneDrive/Documents/Master 2/workshop/projet14/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/dimbo/OneDrive/Documents/Master 2/workshop/projet14/build/CMakeFiles/ZERO_CHECK.dir

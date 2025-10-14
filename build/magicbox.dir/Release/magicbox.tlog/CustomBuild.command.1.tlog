@@ -1,0 +1,10 @@
+^C:\USERS\DIMBO\ONEDRIVE\DOCUMENTS\MASTER 2\WORKSHOP\PROJET14\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" "-SC:/Users/dimbo/OneDrive/Documents/Master 2/workshop/projet14" "-BC:/Users/dimbo/OneDrive/Documents/Master 2/workshop/projet14/build" --check-stamp-file "C:/Users/dimbo/OneDrive/Documents/Master 2/workshop/projet14/build/CMakeFiles/generate.stamp"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

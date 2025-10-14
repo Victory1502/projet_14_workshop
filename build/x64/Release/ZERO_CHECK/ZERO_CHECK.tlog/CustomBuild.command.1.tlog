@@ -1,0 +1,10 @@
+^C:\USERS\DIMBO\ONEDRIVE\DOCUMENTS\MASTER 2\WORKSHOP\PROJET14\BUILD\CMAKEFILES\AA4AE5D580B380EE067A94654347C09A\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" "-SC:/Users/dimbo/OneDrive/Documents/Master 2/workshop/projet14" "-BC:/Users/dimbo/OneDrive/Documents/Master 2/workshop/projet14/build" --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file "C:/Users/dimbo/OneDrive/Documents/Master 2/workshop/projet14/build/MagicBox.sln"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
