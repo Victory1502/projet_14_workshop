@@ -1,0 +1,15 @@
+filebeat.inputs:
+  - type: log
+    paths:
+      - /var/www/html/files/_log/*.log
+    fields:
+      app: glpi
+    fields_under_root: true
+
+output.elasticsearch:
+  hosts: ["elasticsearch:9200"]
+  indices:
+    - index: "glpi-logs-%{+yyyy.MM.dd}"
+
+setup.kibana:
+  host: "kibana:5601"

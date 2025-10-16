@@ -1,0 +1,188 @@
+services:
+  # ==========================
+  # BASE DE DONNÉES GLPI
+  # ==========================
+  glpi_db:
+    image: mariadb:10.11
+    container_name: glpi_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - ${NETWORK_NAME}
+
+  # ==========================
+  # APPLICATION GLPI
+  # ==========================
+  glpi:
+    image: diouxx/glpi
+    container_name: glpi
+    depends_on:
+      - glpi_db
+    ports:
+      - "80:80"
+    environment:
+      - GLPI_INSTALL_AUTO=1
+    volumes:
+      - glpi_data:/var/www/html
+    networks:
+      - ${NETWORK_NAME}
+
+  # ==========================
+  # ELASTICSEARCH
+  # ==========================
+  elasticsearch:
+    image: elastic/elasticsearch:8.11.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    volumes:
+      - elastic_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - ${NETWORK_NAME}
+
+  # ==========================
+  # KIBANA (Interface graphique Elasticsearch)
+  # ==========================
+  kibana:
+    image: elastic/kibana:8.11.0
+    container_name: kibana
+    depends_on:
+      - elasticsearch
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    networks:
+      - ${NETWORK_NAME}
+
+  # ==========================
+  # CASSANDRA (DATA LAKE)
+  # ==========================
+  cassandra:
+    image: cassandra:4.1
+    container_name: cassandra
+    environment:
+      - CASSANDRA_CLUSTER_NAME=${CASSANDRA_CLUSTER_NAME}
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    ports:
+      - "9042:9042"
+    networks:
+      - ${NETWORK_NAME}
+
+  # ==========================
+  # PROMETHEUS
+  # ==========================
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - ${NETWORK_NAME}
+
+  # ==========================
+  # GRAFANA
+  # ==========================
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    depends_on:
+      - prometheus
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - ${NETWORK_NAME}
+
+  # ==========================
+  # NGINX (Pare-feu ModSecurity)
+  # ==========================
+  nginx:
+    image: owasp/modsecurity-crs:nginx
+    container_name: nginx_waf
+    depends_on:
+      - glpi
+      - grafana
+      - kibana
+    ports:
+      - "8080:80"
+    environment:
+      - PARANOIA=1
+      - ANOMALY_INBOUND=10
+      - ANOMALY_OUTBOUND=5
+      - BACKEND=http://glpi:80
+      - PROXY=1
+      - PROXY_SSL=0
+      - PORT=80
+      - ERRORLOG=/var/log/nginx/error.log
+      - ACCESSLOG=/var/log/nginx/access.log
+      - MODSEC_AUDIT_LOG=/var/log/modsec_audit.log
+    networks:
+      - ${NETWORK_NAME}
+
+  # ==========================
+  # FILEBEAT (Collecte des logs GLPI)
+  # ==========================
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.11.0
+    container_name: filebeat
+    user: root
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - glpi_data:/var/www/html/files/_log:ro
+    depends_on:
+      - elasticsearch
+      - glpi
+    networks:
+      - ${NETWORK_NAME}
+    command: filebeat -e -strict.perms=false
+
+  # ==========================
+  # cADVISOR (Métriques Docker)
+  # ==========================
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    container_name: cadvisor
+    privileged: true
+    ports:
+      - "8081:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - ${NETWORK_NAME}
+
+# ==========================
+# RÉSEAU ET VOLUMES
+# ==========================
+networks:
+  project_net:
+    driver: bridge
+
+volumes:
+  mariadb_data:
+  glpi_data:
+  elastic_data:
+  cassandra_data:
+  prometheus_data:
+  grafana_data:
